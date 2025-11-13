@@ -1,4 +1,9 @@
-class ServicoCalculoFatura {
+
+
+
+
+
+/*class ServicoCalculoFatura {
 
    calcularCredito(pecas, apre) {
     let creditos = Math.max(apre.audiencia - 30, 0);
@@ -43,14 +48,71 @@ class ServicoCalculoFatura {
     return total;
    }
 }
-
+*/
 
 
 
 
 const { readFileSync } = require('fs');
 
+class Repositorio {
+  constructor() {
+    this.pecas = JSON.parse(readFileSync('./pecas.json'));
+  }
 
+  getPeca(apre) {
+    return this.pecas[apre.id];
+  }
+}
+
+class ServicoCalculoFatura {
+
+   constructor(repo) {
+     this.repo = repo;
+  }
+  
+ calcularCredito(apre) {
+    let creditos = Math.max(apre.audiencia - 30, 0);
+    if (this.repo.getPeca(apre).tipo === "comedia")
+      creditos += Math.floor(apre.audiencia / 5);
+    return creditos;
+  }
+
+  calcularTotalCreditos(apresentacoes) {
+    let total = 0;
+    for (let apre of apresentacoes)
+      total += this.calcularCredito(apre);
+    return total;
+  }
+
+  calcularTotalApresentacao(apre) {
+    const peca = this.repo.getPeca(apre);
+    let total = 0;
+    switch (peca.tipo) {
+      case "tragedia":
+        total = 40000;
+        if (apre.audiencia > 30)
+          total += 1000 * (apre.audiencia - 30);
+        break;
+      case "comedia":
+        total = 30000;
+        if (apre.audiencia > 20)
+          total += 10000 + 500 * (apre.audiencia - 20);
+        total += 300 * apre.audiencia;
+        break;
+      default:
+        throw new Error(`Peça desconhecida: ${peca.tipo}`);
+    }
+    return total;
+  }
+
+  calcularTotalFatura(apresentacoes) {
+    let total = 0;
+    for (let apre of apresentacoes)
+      total += this.calcularTotalApresentacao(apre);
+    return total;
+  }
+} 
 // commit 2
 //function getPeca(pecas, apre) {
   //return pecas[apre.id];
@@ -115,22 +177,15 @@ function calcularTotalCreditos(pecas, apresentacoes) {
 }
 */
 
-function gerarFaturaStr(faturas, pecas, calc) {
-  let faturaStr = `Fatura ${faturas.cliente}\n`;
+function gerarFaturaStr(fatura, calc) {
+  let faturaStr = `Fatura ${fatura.cliente}\n`;
 
-  for (let apre of faturas.apresentacoes) {
-    faturaStr += `  ${pecas[apre.id].nome}: ${formatarMoeda(
-      calc.calcularTotalApresentacao(pecas, apre)
-    )} (${apre.audiencia} assentos)\n`;
+  for (let apre of fatura.apresentacoes) {
+    faturaStr += `  ${calc.repo.getPeca(apre).nome}: ${formatarMoeda(calc.calcularTotalApresentacao(apre))} (${apre.audiencia} assentos)\n`;
   }
 
-  faturaStr += `Valor total: ${formatarMoeda(
-    calc.calcularTotalFatura(pecas, faturas.apresentacoes)
-  )}\n`;
-
-  faturaStr += `Créditos acumulados: ${
-    calc.calcularTotalCreditos(pecas, faturas.apresentacoes)
-  }\n`;
+  faturaStr += `Valor total: ${formatarMoeda(calc.calcularTotalFatura(fatura.apresentacoes))}\n`;
+  faturaStr += `Créditos acumulados: ${calc.calcularTotalCreditos(fatura.apresentacoes)}\n`;
 
   return faturaStr;
 }
@@ -155,11 +210,15 @@ function gerarFaturaStr(faturas, pecas, calc) {
 }
 */
 
-const faturas = JSON.parse(readFileSync('./faturas.json'));
-const pecas = JSON.parse(readFileSync('./pecas.json'));
+//const faturas = JSON.parse(readFileSync('./faturas.json'));
+//const pecas = JSON.parse(readFileSync('./pecas.json'));
 //const faturaStr = gerarFaturaStr(faturas, pecas);
 //console.log(gerarFaturaHTML(faturas, pecas));
-const calc = new ServicoCalculoFatura();
-const faturaStr = gerarFaturaStr(faturas, pecas, calc);
+//const calc = new ServicoCalculoFatura();
+//const faturaStr = gerarFaturaStr(faturas, pecas, calc);
+//console.log(faturaStr);
+const faturas = JSON.parse(readFileSync('./faturas.json'));
+const calc = new ServicoCalculoFatura(new Repositorio());
+const faturaStr = gerarFaturaStr(faturas, calc);
 console.log(faturaStr);
 
